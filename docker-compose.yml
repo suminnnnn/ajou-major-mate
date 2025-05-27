@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres
+    container_name: db
+    restart: always 
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: 1212
+      POSTGRES_DB: majormate
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+
+  api:
+    build: .
+    container_name: fastapi-app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - qdrant
+    networks:
+      - backend
+
+  qdrant:
+    image: qdrant/qdrant
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    networks:
+      - backend
+  
+  streamlit:
+    build:
+      context: ./streamlit_app
+    container_name: streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      - API_BASE=http://fastapi-app:8000
+    networks:
+      - backend
+
+volumes:
+  qdrant_storage:
+
+networks:
+  backend:
