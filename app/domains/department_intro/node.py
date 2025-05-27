@@ -38,11 +38,33 @@ class GradeDocuments(BaseModel):
 
 def grade_documents(state: DepartmentIntroState) -> DepartmentIntroState:
     logger.info("[NODE] grade_documents 진입")
-    chain = ChatPromptTemplate.from_messages([
-        ("system", "문서가 질문과 관련 있는지 평가하고 'yes' 또는 'no'로 답하세요."),
-        ("human", "문서: {document}\n질문: {question}")
-    ]) | llm.with_structured_output(GradeDocuments)
-    filtered = [doc for doc in state["documents"] if chain.invoke({"question": state["question"], "document": doc}).binary_score == "yes"]
+    structured_llm_grader = llm.with_structured_output(GradeDocuments)
+
+    system = """You are a grader assessing whether a retrieved document is meaningfully relevant to a user question.\n
+        Only respond 'yes' if the document contains concrete, informative content (not headings or placeholders) that can directly help answer the question.\n
+        Do not mark as relevant if the document contains only general section titles or insufficient information.\n
+        Your job is to filter out unhelpful or vague results, not to be lenient.\n
+        Respond only with a binary score: 'yes' or 'no'."""
+
+    grade_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system),
+            ("human", "User question: {question}\n\n Retrieved document content:\n\n {document}"),
+        ]
+    )
+
+    retrieval_grader = grade_prompt | structured_llm_grader
+    question = state["question"]
+    documents = state["documents"]
+
+    filtered = []
+    for i, doc in enumerate(documents):
+        logger.info(f"[EVAL] Doc {i+1} 평가 중...")
+        result = retrieval_grader.invoke({"question": question, "document": doc})
+        logger.info(f"[RESULT] Doc {i+1}: {result.binary_score}")
+        if result.binary_score == "yes":
+            filtered.append(doc)
+
     logger.info(f"[OUTPUT] {len(filtered)} documents passed relevance filter")
     return {**state, "documents": filtered}
 

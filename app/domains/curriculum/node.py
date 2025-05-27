@@ -47,13 +47,20 @@ def grade_documents(state: CurriculumState) -> CurriculumState:
     logger.info("[NODE] grade_documents 진입")
     structured_llm_grader = llm.with_structured_output(GradeDocuments)
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a grader assessing relevance of a retrieved document to a user question."
-                   " If the document contains keyword(s) or semantic meaning related to the user question, grade it as relevant."),
-        ("human", "Retrieved document: \n\n {document} \n\n User question: {question}")
-    ])
+    system = """You are a grader assessing whether a retrieved document is meaningfully relevant to a user question.\n
+        Only respond 'yes' if the document contains concrete, informative content (not headings or placeholders) that can directly help answer the question.\n
+        Do not mark as relevant if the document contains only general section titles or insufficient information.\n
+        Your job is to filter out unhelpful or vague results, not to be lenient.\n
+        Respond only with a binary score: 'yes' or 'no'."""
 
-    retrieval_grader = prompt | structured_llm_grader
+    grade_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system),
+            ("human", "User question: {question}\n\n Retrieved document content:\n\n {document}"),
+        ]
+    )
+
+    retrieval_grader = grade_prompt | structured_llm_grader
     question = state["question"]
     documents = state["documents"]
 
