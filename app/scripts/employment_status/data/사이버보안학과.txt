@@ -1,0 +1,55 @@
+## 사이버보안학과 졸업 후 진출 분야
+
+1. 정부출연 연구소
+- 국방과학연구소 (ADD)
+- 국가정보원 (NSR)
+- 정보통신산업진흥원 (NIPA)
+- 한국전자통신연구원 (ETRI)
+- 전자부품연구원 (KETI)
+- 한국전기연구원
+- 한국원자력연구원 (KAERI)
+
+2. 국내외 보안업체
+- Symantec
+- 안랩 (AhnLab)
+- 시큐브 (SECUVE)
+- MarkAny
+- DIOTEK
+
+3. IT 기업
+- Microsoft
+- Google
+- IBM
+- NHN
+- FutureSoft
+- TmaxSoft
+
+4. 국가기관 & 공기업
+- 청와대
+- 경찰청
+- 검찰청
+- 국가정보원 (NIS)
+- 한국인터넷진흥원 (KISA)
+- 금융보안원
+- 금융감독원
+- 금융결제원
+- 한국전력공사 (KEPCO)
+
+5. 대기업
+- 한화 S&C Hanwha S&C
+- 두산 Doosan
+- 삼성전자 Samsung
+- 현대 Hyundai
+- SK telecom
+- KT
+- LG전자
+
+6. 그 외 기업
+- Amazon
+- 김앤장 (Kim & Chang, 로펌)
+- POSCO
+- Meta
+- SystemBank
+- Fit.Life
+- Prudential
+- (주)지앤에스인증원 등
