@@ -100,19 +100,25 @@ def grade_generation_v_documents_and_question(state: CurriculumState) -> str:
     question = state["question"]
 
     doc_prompt = ChatPromptTemplate.from_messages([
-        ("system", "응답이 문서를 기반으로 작성되었는지 yes/no로 평가해주세요."),
-        ("human", "응답: {generation}\n\n문서: {documents}")
+        ("system",
+         """You are a grader assessing whether an LLM generation is grounded in / supported by a set of retrieved facts.\n 
+        Give a binary score 'yes' or 'no'. 'Yes' means that the answer is grounded in / supported by the set of facts."""),
+        ("human", "Set of facts: \n\n {documents} \n\n LLM generation: {generation}")
     ])
     doc_chain = doc_prompt | llm.with_structured_output(GenEval)
     doc_check = doc_chain.invoke({"generation": gen, "documents": "\n\n".join(docs)})
     logger.info(f"[EVAL] groundedness → {doc_check.binary_score}")
+    
     if doc_check.binary_score != "yes":
         logger.info("[DECISION] hallucination detected → regenerate")
         return "hallucination"
+    
+    system = """You are a grader assessing whether an answer addresses / resolves a question \n 
+     Give a binary score 'yes' or 'no'. Yes' means that the answer resolves the question."""
 
     q_prompt = ChatPromptTemplate.from_messages([
-        ("system", "응답이 질문에 적절한 답변인지 평가해주세요. yes 또는 no로 답해주세요."),
-        ("human", "질문: {question}\n응답: {generation}")
+        ("system", system),
+        ("human", "User question: \n\n {question} \n\n LLM generation: {generation}")
     ])
     q_chain = q_prompt | llm.with_structured_output(GenEval)
     q_check = q_chain.invoke({"question": question, "generation": gen})

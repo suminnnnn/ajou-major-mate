@@ -65,17 +65,36 @@ class GenEval(BaseModel):
 
 def grade_generation_v_documents_and_question(state: EmploymentStatusState) -> str:
     logger.info("[NODE] grade_generation_v_documents_and_question 진입")
-    doc_eval = ChatPromptTemplate.from_messages([
-        ("system", "응답이 문서를 기반으로 작성되었는지 평가하세요."),
-        ("human", "응답: {generation}\n문서: {documents}")
-    ]) | llm.with_structured_output(GenEval)
-    if doc_eval.invoke({"generation": state["generation"], "documents": "\n".join(state["documents"])}).binary_score != "yes":
+    gen = state["generation"]
+    docs = state["documents"]
+    question = state["question"]
+
+    doc_prompt = ChatPromptTemplate.from_messages([
+        ("system",
+         """You are a grader assessing whether an LLM generation is grounded in / supported by a set of retrieved facts.\n 
+        Give a binary score 'yes' or 'no'. 'Yes' means that the answer is grounded in / supported by the set of facts."""),
+        ("human", "Set of facts: \n\n {documents} \n\n LLM generation: {generation}")
+    ])
+    doc_chain = doc_prompt | llm.with_structured_output(GenEval)
+    doc_check = doc_chain.invoke({"generation": gen, "documents": "\n\n".join(docs)})
+    logger.info(f"[EVAL] groundedness → {doc_check.binary_score}")
+    
+    if doc_check.binary_score != "yes":
+        logger.info("[DECISION] hallucination detected → regenerate")
         return "hallucination"
-    q_eval = ChatPromptTemplate.from_messages([
-        ("system", "응답이 질문에 적절한지 평가하세요."),
-        ("human", "질문: {question}\n응답: {generation}")
-    ]) | llm.with_structured_output(GenEval)
-    return "relevant" if q_eval.invoke({"question": state["question"], "generation": state["generation"]}).binary_score == "yes" else "not relevant"
+    
+    system = """You are a grader assessing whether an answer addresses / resolves a question \n 
+     Give a binary score 'yes' or 'no'. Yes' means that the answer resolves the question."""
+
+    q_prompt = ChatPromptTemplate.from_messages([
+        ("system", system),
+        ("human", "User question: \n\n {question} \n\n LLM generation: {generation}")
+    ])
+    q_chain = q_prompt | llm.with_structured_output(GenEval)
+    q_check = q_chain.invoke({"question": question, "generation": gen})
+    logger.info(f"[EVAL] relevance to question → {q_check.binary_score}")
+
+    return "relevant" if q_check.binary_score == "yes" else "not relevant"
 
 class Rewritten(BaseModel):
     question: str
