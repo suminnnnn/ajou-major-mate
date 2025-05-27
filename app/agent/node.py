@@ -34,6 +34,13 @@ def query_filter(state: MessageState) -> MessageState:
 
     result = chain.invoke({"question": question})
     logger.info(f"[OUTPUT] inappropriate: {result.inappropriate}")
+    
+    if(result.inappropriate):
+        return {
+            **state,
+            "inappropriate": result.inappropriate,
+            "generation": "죄송합니다. 해당 질문은 서비스 정책에 따라 답변드릴 수 없습니다. 다른 질문을 해주세요."
+        }
 
     return {**state, "inappropriate": result.inappropriate}
 
@@ -78,6 +85,13 @@ def route_query(state: MessageState) -> MessageState:
     result = query_router.invoke({"question" : state["question"]})
     
     logger.info(f"[OUTPUT] domain: {result.domain}")
+    
+    if(result.domain=="other"):
+        return {
+            **state,
+            "domain": result.domain,
+            "generation": "해당 질문은 현재 제공 중인 학사 정보 범위에 포함되지 않습니다. 다른 질문을 해보세요."
+        }
 
     return {**state, "domain": result.domain}
     
