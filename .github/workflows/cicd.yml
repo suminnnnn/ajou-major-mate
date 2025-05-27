@@ -1,0 +1,46 @@
+  name: Prod CI/CD
+
+  on:
+    push:
+      branches:
+        - main
+
+  jobs:
+    deploy:
+      runs-on: ubuntu-latest
+
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH access
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Upload project to EC2
+        run: |
+          rsync -az --exclude='.git' --exclude='.env' ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/majormate
+
+      - name: Create .env on EC2
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "cd majormate && rm -f .env && touch .env && \
+          echo 'DATABASE_URL=${{ secrets.DATABASE_URL }}' >> .env && \
+          echo 'JWT_SECRET=${{ secrets.JWT_SECRET }}' >> .env && \
+          echo 'OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}' >> .env && \
+          echo 'LANGSMITH_API_KEY=${{ secrets.LANGSMITH_API_KEY }}' >> .env && \
+          echo 'LANGSMITH_ENDPOINT=${{ secrets.LANGSMITH_ENDPOINT }}' >> .env && \
+          echo 'LANGSMITH_PROJECT=${{ secrets.LANGSMITH_PROJECT }}' >> .env && \
+          echo 'LANGSMITH_TRACING=${{ secrets.LANGSMITH_TRACING }}' >> .env && \
+          echo 'S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}' >> .env && \
+          echo 'S3_BASE_PATH=${{ secrets.S3_BASE_PATH }}' >> .env && \
+          echo 'AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}' >> .env && \
+          echo 'AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}' >> .env && \
+          echo 'AWS_REGION=${{ secrets.AWS_REGION }}' >> .env && \
+          echo 'ENVIRONMENT=${{ secrets.ENVIRONMENT }}' >> .env"
+
+      - name: Build and restart docker containers
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "cd majormate && docker-compose -f docker-compose.prod.yml down && docker-compose -f docker-compose.prod.yml up -d --build"
