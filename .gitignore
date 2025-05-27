@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+*.db
+*.sqlite3
+*.tar
+*.sock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# MyPy / Pyright
+.mypy_cache/
+.pyright/
+
+# LangChain traces
+.langchain/
+
+# Streamlit
+.streamlit/config.toml
