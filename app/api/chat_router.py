@@ -5,6 +5,7 @@ from app.domains.user.model import User
 from app.agent.graph import graph
 from app.agent.state import MessageState
 from langchain_core.tracers import LangChainTracer
+from langgraph.graph import LangGraphRecursionLimitExceeded
 import logging
 
 logger = logging.getLogger(__name__)
@@ -36,8 +37,9 @@ def chat(req: ChatRequest, current_user: User = Depends(get_current_user)):
         "callbacks": [tracer]
     }
 
-    result = graph.invoke(inputs, config)
-    
-    answer = result["generation"]
+    try:
+        result = graph.invoke(inputs, config)
+    except LangGraphRecursionLimitExceeded:
+        result = MessageState(**inputs.dict(), generation="관련된 정보를 찾을 수 없습니다. 다른 질문을 시도해보세요.")
 
-    return ChatResponse(response=answer)
+    return ChatResponse(response=result["generation"])
