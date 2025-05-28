@@ -45,4 +45,4 @@ bedrock_checkpointer = BedrockSessionSaver(
     aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY")
 )
 
-graph = workflow.compile(checkpointer=bedrock_checkpointer, recursion_limit=15)
+graph = workflow.compile(checkpointer=bedrock_checkpointer)
