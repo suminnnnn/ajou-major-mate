@@ -1,5 +1,6 @@
 from app.domains.course.state import CourseState
 from app.vectorstore.qdrant import similarity_search
+from app.utils.document_formatter import format_documents
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
@@ -40,10 +41,11 @@ def retrieve(state: CourseState) -> CourseState:
     logger.info(f"[INPUT] filters: {filters}")
     
     hits = similarity_search(state["question"], domain="course", k=5, metadata_filters=filters)
-    docs = [doc["text"] for doc in hits]
     
-    logger.info(f"[OUTPUT] {len(docs)} documents retrieved")
-    return {**state, "documents": docs}
+    formatted_docs = format_documents(hits)
+    
+    logger.info(f"[OUTPUT] {len(formatted_docs )} documents retrieved")
+    return {**state, "documents": formatted_docs}
 
 # ✅ 3. 문서 평가
 class GradeDocuments(BaseModel):

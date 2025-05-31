@@ -1,5 +1,6 @@
 from app.domains.curriculum.state import CurriculumState
 from app.vectorstore.qdrant import similarity_search
+from app.utils.document_formatter import format_documents
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
@@ -35,10 +36,11 @@ def retrieve(state: CurriculumState) -> CurriculumState:
     logger.info(f"[INPUT] filters: {filters}")
 
     hits = similarity_search(state["question"], domain="curriculum", k=5, metadata_filters=filters)
-    docs = [doc["text"] for doc in hits]
-
-    logger.info(f"[OUTPUT] {len(docs)} documents retrieved")
-    return {**state, "documents": docs}
+    
+    formatted_docs = format_documents(hits)
+    
+    logger.info(f"[OUTPUT] {len(formatted_docs )} documents retrieved")
+    return {**state, "documents": formatted_docs}
 
 class GradeDocuments(BaseModel):
     binary_score: str = Field(description="Documents are relevant to the question, 'yes' or 'no'")
