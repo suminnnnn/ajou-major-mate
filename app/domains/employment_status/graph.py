@@ -4,13 +4,24 @@ from app.domains.employment_status.node import *
 
 workflow = StateGraph(EmploymentStatusState)
 workflow.add_node("extract_department", extract_department)
+workflow.add_node("not_supported_department", not_supported_department)
 workflow.add_node("retrieve", retrieve)
 workflow.add_node("grade_documents", grade_documents)
 workflow.add_node("generate", generate)
 workflow.add_node("transform_query", transform_query)
 
 workflow.set_entry_point("extract_department")
-workflow.add_edge("extract_department", "retrieve")
+
+workflow.add_conditional_edges(
+    "extract_department",
+    route_by_department_result,
+    {
+        "valid": "retrieve",
+        "not_supported": "not_supported_department",
+        "not_specific": "retrieve"
+    }
+)
+
 workflow.add_edge("retrieve", "grade_documents")
 workflow.add_conditional_edges(
     "grade_documents",

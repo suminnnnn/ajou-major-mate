@@ -11,19 +11,37 @@ logging.basicConfig(level=logging.INFO)
 llm = ChatOpenAI(model="gpt-4o", temperature=0, api_key=os.getenv("OPENAI_API_KEY"))
 
 class DepartmentExtracted(BaseModel):
-    department: str
+    result: str  # "valid", "not_supported", "not_specific"
+    department: str = ""
 
 def extract_department(state: EmploymentStatusState) -> EmploymentStatusState:
     logger.info("[NODE] extract_department 진입")
     logger.info(f"[INPUT] question: {state['question']}")
+    
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "질문에서 학과명을 추출하세요.\n학과 리스트: 소프트웨어학과, 디지털미디어학과, 국방디지털융합학과, 인공지능융합학과, 사이버보안학과"),
+        ("system", 
+        "질문이 특정 학과에 대한 질문인지 판별하고, 학과 리스트에 존재하는지 확인하라.\n"
+        "- 특정 학과에 대한 질문이고 학과 리스트에 있다면: result='valid', department='학과명'\n"
+        "- 특정 학과에 대한 질문이지만 학과 리스트에 없다면: result='not_supported', department='질문에 포함된 학과명'\n"
+        "- 특정 학과에 대한 질문이 아니면: result='not_specific', department=''\n"
+        "학과 리스트: 소프트웨어학과, 디지털미디어학과, 국방디지털융합학과, 인공지능융합학과, 사이버보안학과"),
         ("human", "{question}")
     ])
     chain = prompt | llm.with_structured_output(DepartmentExtracted)
     result = chain.invoke({"question": state["question"]})
-    logger.info(f"[OUTPUT] department: {result.department}")
-    return {**state, "department": result.department}
+
+    logger.info(f"[OUTPUT] result: {result.result}, department: {result.department}")
+    return {**state, "department": result.department, "department_result": result.result}
+
+def route_by_department_result(state: EmploymentStatusState) -> str:
+    return state["department_result"]
+
+def not_supported_department(state: EmploymentStatusState) -> EmploymentStatusState:
+    logger.info("[NODE] not_supported_department 진입")
+    return {
+        **state,
+        "generation": "죄송합니다. 현재 아주대학교에는 해당 학과가 존재하지 않아 안내드릴 수 없습니다."
+    }
 
 def retrieve(state: EmploymentStatusState) -> EmploymentStatusState:
     logger.info("[NODE] retrieve 진입")
