@@ -39,7 +39,7 @@ def retrieve(state: CourseState) -> CourseState:
     filters = {"metadata.department": state["department"]} if state["department"] else None
     logger.info(f"[INPUT] filters: {filters}")
     
-    hits = similarity_search(state["question"], domain="course", k=3, metadata_filters=filters)
+    hits = similarity_search(state["question"], domain="course", k=5, metadata_filters=filters)
     docs = [doc["text"] for doc in hits]
     
     logger.info(f"[OUTPUT] {len(docs)} documents retrieved")
