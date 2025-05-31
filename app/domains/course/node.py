@@ -100,7 +100,7 @@ def decide_to_generate(state: CourseState) -> str:
 def generate(state: CourseState) -> CourseState:    
     logger.info("[NODE] generate 진입")
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "다음 문서를 참고하여 질문에 답변을 생성하세요."),
+        ("system", "다음 문서를 참고하여 질문에 답변을 생성하세요.\n 만약, 문서 내에서 특정 과목에 대한 내용을 참고하여 답변을 생성한다면, 과목 코드를 참고하여 해당 과목이 몇 학년 때 수강하기를 권장하는 지에 대한 정보도 함께 제공하세요. 과목 코드는 영어 알파벳 3~4글자 + 숫자 3~4글자로 구성되며, 맨 처음 숫자가 해당 과목의 권장 수강 학년입니다. "),
         ("human", "문서들: {documents}\n\n질문: {question}")
     ])
     chain = prompt | llm
