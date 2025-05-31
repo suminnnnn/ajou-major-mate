@@ -3,9 +3,11 @@ from app.vectorstore.qdrant import similarity_search
 from app.utils.document_formatter import format_curriculum_documents
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import HumanMessage, SystemMessage, MediaContent
+from langchain_core.messages import HumanMessage, SystemMessage
+from typing import List
 from pydantic import BaseModel, Field
 import os
+import re
 import logging
 
 logger = logging.getLogger(__name__)
@@ -86,41 +88,33 @@ def decide_to_generate(state: CurriculumState) -> str:
     logger.info("[DECISION] Relevant documents found → generate")
     return "generate"
 
+def extract_all_image_urls(xml_docs: List[str]) -> List[str]:
+    """모든 <image_url> 태그에서 URL 추출"""
+    urls = []
+    for xml in xml_docs:
+        matches = re.findall(r"<image_url>(.*?)</image_url>", xml)
+        urls.extend([url.strip() for url in matches if url.strip()])
+    return urls
+
 def generate(state: CurriculumState) -> CurriculumState:
     logger.info("[NODE] generate 진입")
 
-    system_prompt = SystemMessage(
-        content="다음 문서를 참고하여 질문에 답변을 생성하세요. 표 이미지는 시각적으로 분석하여 요약된 정보를 제공하세요."
-    )
+    all_xml_content = "\n\n".join(state["documents"])
+    system_msg = SystemMessage(content="다음 XML 형식의 학사 문서를 참고하여 질문에 답변을 생성하세요.")
+    document_msg = HumanMessage(content=all_xml_content)
 
-    human_parts = []
+    image_msgs = []
+    for url in extract_all_image_urls(state["documents"]):
+        image_msgs.append(HumanMessage(content=[{
+            "type": "image_url",
+            "image_url": {"url": url}
+        }]))
 
-    for doc in state["documents"]:
-        if "<image_url>" in doc:
-            import re
-            match = re.search(r"<image_url>(.*?)</image_url>", doc)
-            if match:
-                image_url = match.group(1)
-                human_parts.append(
-                    MediaContent(
-                        type="image_url",
-                        image_url={"url": image_url}
-                    )
-                )
-                text_part = re.sub(r"<image_url>.*?</image_url>", "", doc)
-                if text_part.strip():
-                    human_parts.append(text_part.strip())
-            else:
-                human_parts.append(doc)
-        else:
-            human_parts.append(doc)
+    question_msg = HumanMessage(content=state["question"])
 
-    human_parts.append(f"질문: {state['question']}")
+    messages = [system_msg, document_msg] + image_msgs + [question_msg]
 
-    human_message = HumanMessage(content=human_parts)
-
-    response = llm.invoke([system_prompt, human_message])
-
+    response = llm.invoke(messages)
     logger.info(f"[OUTPUT] Generation (first 200 chars): {response.content[:200]}")
     return {**state, "generation": response.content}
 

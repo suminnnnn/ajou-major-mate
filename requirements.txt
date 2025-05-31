@@ -1,7 +1,8 @@
 fastapi
 uvicorn
 langgraph
-langchain
+langchain>=0.1.17
+langchain-core>=0.1.43
 langsmith
 langchain-openai
 langchain-community
