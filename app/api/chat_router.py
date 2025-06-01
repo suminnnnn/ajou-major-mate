@@ -42,7 +42,7 @@ def chat(req: ChatRequest, current_user: User = Depends(get_current_user)):
             "thread_id": session_id
         },
         "callbacks": [tracer],
-        "recursion_limit": 15
+        "recursion_limit": 10
     }
 
     try:
