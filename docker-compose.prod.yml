@@ -31,6 +31,8 @@ services:
       - "8501:8501"
     environment:
       - API_BASE=http://fastapi-app:8000
+    depends_on:
+      - api
     networks:
       - backend
 
