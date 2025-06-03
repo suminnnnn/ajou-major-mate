@@ -61,12 +61,12 @@ def route_query(state: MessageState) -> MessageState:
     structured_query_router = llm.with_structured_output(RouteQuery)
     
     system = """
-    너는 유저의 질문을 아주대학교 관련 정보의 다섯 가지 도메인 중 하나로 분류하는 분류기 역할을 한다.
+    너는 유저의 질문을 다섯 가지 도메인 중 하나로 분류하는 분류기 역할을 한다.
     아래 도메인 중 유저의 질문에 가장 적합한 하나를 골라야 한다:
 
     - course: 학과별 개설 과목, 과목명 등 수업 정보
     - curriculum: 학과별 졸업 요건, 학과별 학년별 커리큘럼, 학과별 권장이수
-    - department_intro: 학과 소개, 교수진, 학과 사무실 전화 번호, 학과 사무실 위치, 학과 교육 목표
+    - department_intro: 학과 소개, 교수진, 학과 사무실 전화 번호, 학과 사무실 위치, 학과 교육 목표, 학과 비교
     - employment_status: 취업 현황, 진로, 진출 분야
     - other: 위 분류에 해당하지 않을 경우
 

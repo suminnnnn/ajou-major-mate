@@ -78,3 +78,32 @@ def similarity_search(
 
     docs: List[Document] = vectordb.similarity_search(query=query, k=k, filter=filter)
     return [{"text": doc.page_content, "metadata": doc.metadata} for doc in docs]
+
+def similarity_search_multiple_departments(
+    query: str,
+    domain: str,
+    departments: List[str],
+    per_department_k: int = 3
+) -> List[Dict]:
+    ensure_collection()
+
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+    vectordb = Qdrant(
+        client=client,
+        collection_name=COLLECTION_NAME,
+        embeddings=embeddings
+    )
+
+    all_results = []
+
+    for dept in departments:
+        filter = Filter(
+            must=[
+                FieldCondition(key="metadata.domain", match=MatchValue(value=domain)),
+                FieldCondition(key="metadata.department", match=MatchValue(value=dept)),
+            ]
+        )
+        docs: List[Document] = vectordb.similarity_search(query=query, k=per_department_k, filter=filter)
+        all_results.extend([{"text": doc.page_content, "metadata": doc.metadata} for doc in docs])
+
+    return all_results

@@ -1,9 +1,10 @@
 from app.domains.department_intro.state import DepartmentIntroState
-from app.vectorstore.qdrant import similarity_search
+from app.vectorstore.qdrant import similarity_search_multiple_departments, similarity_search
 from app.utils.document_formatter import format_documents
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
+from typing import List
 import os, logging
 
 logger = logging.getLogger(__name__)
@@ -12,7 +13,7 @@ llm = ChatOpenAI(model="gpt-4o", temperature=0, api_key=os.getenv("OPENAI_API_KE
 
 class DepartmentExtracted(BaseModel):
     result: str  # "valid", "not_supported", "not_specific"
-    department: str = ""
+    department: List[str]  # 여러 학과도 대응 가능
 
 def extract_department(state: DepartmentIntroState) -> DepartmentIntroState:
     logger.info("[NODE] extract_department 진입")
@@ -20,17 +21,18 @@ def extract_department(state: DepartmentIntroState) -> DepartmentIntroState:
     
     prompt = ChatPromptTemplate.from_messages([
         ("system", 
-        "질문이 특정 학과에 대한 질문인지 판별하고, 학과 리스트에 존재하는지 확인하라.\n"
-        "- 특정 학과에 대한 질문이고 학과 리스트에 있다면: result='valid', department='학과명'\n"
-        "- 특정 학과에 대한 질문이지만 학과 리스트에 없다면: result='not_supported', department='질문에 포함된 학과명'\n"
-        "- 특정 학과에 대한 질문이 아니면: result='not_specific', department=''\n"
+        "질문이 특정 학과(들)에 대한 질문인지 판별하고, 학과 리스트에 존재하는지 확인하라.\n"
+        "- 특정 학과들이 질문에 포함되고 학과 리스트에 있다면: result='valid', department=['학과1','학과2'],\n"
+        "- 특정 학과가 있지만 리스트에 없다면: result='not_supported', department=['질문에 포함된 학과명']\n"
+        "- 특정 학과가 없으면: result='not_specific', department=[]\n"
         "학과 리스트: 소프트웨어학과, 디지털미디어학과, 국방디지털융합학과, 인공지능융합학과, 사이버보안학과"),
         ("human", "{question}")
     ])
+    
     chain = prompt | llm.with_structured_output(DepartmentExtracted)
     result = chain.invoke({"question": state["question"]})
 
-    logger.info(f"[OUTPUT] result: {result.result}, department: {result.department}")
+    logger.info(f"[OUTPUT] result: {result.result}, departments: {result.department}")
     return {**state, "department": result.department, "department_result": result.result}
 
 def route_by_department_result(state: DepartmentIntroState) -> str:
@@ -45,15 +47,27 @@ def not_supported_department(state: DepartmentIntroState) -> DepartmentIntroStat
 
 def retrieve(state: DepartmentIntroState) -> DepartmentIntroState:
     logger.info("[NODE] retrieve 진입")
+
+    departments = state.get("department", [])
+    query = state["question"]
     
-    filters = {"metadata.department": state["department"]} if state["department"] else None
-    logger.info(f"[INPUT] filters: {filters}")
-    
-    hits = similarity_search(state["question"], domain="department_intro", k=2, metadata_filters=filters)
-    
+    if departments:
+        hits = similarity_search_multiple_departments(
+            query=query,
+            domain="department_intro",
+            departments=departments,
+            per_department_k=3
+        )
+    else:
+        logger.info("[INFO] 학과 정보 없음 → department_intro 도메인 전체에서 검색")
+        hits = similarity_search(
+            query=query,
+            domain="department_intro",
+            k=10
+        )
+
     formatted_docs = format_documents(hits)
-    
-    logger.info(f"[OUTPUT] {len(formatted_docs )} documents retrieved")
+    logger.info(f"[OUTPUT] {len(formatted_docs)}건 문서 검색 완료")
     return {**state, "documents": formatted_docs}
 
 class GradeDocuments(BaseModel):
@@ -63,11 +77,17 @@ def grade_documents(state: DepartmentIntroState) -> DepartmentIntroState:
     logger.info("[NODE] grade_documents 진입")
     structured_llm_grader = llm.with_structured_output(GradeDocuments)
 
-    system = """You are a grader assessing whether a retrieved document is meaningfully relevant to a user question.\n
-        Only respond 'yes' if the document contains concrete, informative content (not headings or placeholders) that can directly help answer the question.\n
-        Do not mark as relevant if the document contains only general section titles or insufficient information.\n
-        Your job is to filter out unhelpful or vague results, not to be lenient.\n
-        Respond only with a binary score: 'yes' or 'no'."""
+    system = """
+        You are a grader assessing whether a retrieved document can help answer the user's question.
+
+        Respond "yes" **if the document either**:
+        1. Contains content that helps generate an answer to the question (even partial help is acceptable), OR
+        2. Contains informative content specifically related to **any department** mentioned in the user's question.
+
+        Do NOT respond "yes" if the document only contains generic section titles, vague placeholders, or lacks relevant information.
+
+        Respond only with a binary score: 'yes' or 'no'.
+        """
 
     grade_prompt = ChatPromptTemplate.from_messages(
         [
