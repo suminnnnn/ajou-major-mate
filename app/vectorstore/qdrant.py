@@ -67,7 +67,7 @@ def similarity_search(
         for key, value in metadata_filters.items():
             conditions.append(FieldCondition(key=key, match=MatchValue(value=value)))
 
-    filter = Filter(should=conditions)
+    filter = Filter(must=conditions)
 
     embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
     vectordb = Qdrant(
