@@ -66,7 +66,7 @@ def route_query(state: MessageState) -> MessageState:
 
     - course: 학과별 개설 과목, 과목명 등 수업 정보
     - curriculum: 학과별 졸업 요건, 학과별 학년별 커리큘럼, 학과별 권장이수
-    - department_intro: 학과 소개, 교수진, 학과 사무실 전화 번호, 학과 사무실 위치, 학과 교육 목표, 학과 비교
+    - department_intro: 학과 소개, 학과 교수진 정보(전공분야, 연구실 위치, 연구실 회선 전화번호 등등), 학과 사무실 전화 번호, 학과 사무실 위치, 학과 교육 목표, 학과 비교
     - employment_status: 취업 현황, 진로, 진출 분야
     - other: 위 분류에 해당하지 않을 경우
 
