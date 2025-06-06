@@ -5,6 +5,7 @@ langchain>=0.1.17
 langchain-core>=0.1.43
 langsmith
 langchain-openai
+langchain_upstage
 langchain-community
 langgraph-checkpoint-aws
 langgraph-checkpoint
@@ -20,5 +21,8 @@ passlib[bcrypt]
 python-dotenv
 pydantic[email]
 pdfplumber
+pymupdf
 streamlit
 IPython
+html2text
+beautifulsoup4

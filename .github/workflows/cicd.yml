@@ -30,6 +30,7 @@
           echo 'DATABASE_URL=${{ secrets.DATABASE_URL }}' >> .env && \
           echo 'JWT_SECRET=${{ secrets.JWT_SECRET }}' >> .env && \
           echo 'OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}' >> .env && \
+          echo 'UPSTAGE_API_KEY=${{ secrets.UPSTAGE_API_KEY }}' >> .env && \
           echo 'LANGSMITH_API_KEY=${{ secrets.LANGSMITH_API_KEY }}' >> .env && \
           echo 'LANGSMITH_ENDPOINT=${{ secrets.LANGSMITH_ENDPOINT }}' >> .env && \
           echo 'LANGSMITH_PROJECT=${{ secrets.LANGSMITH_PROJECT }}' >> .env && \
